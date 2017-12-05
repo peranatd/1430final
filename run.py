@@ -1,3 +1,6 @@
+import sys
+sys.path.append('/usr/local/lib/python2.7/site-packages')
+
 import os
 import csv
 import cv2
@@ -55,13 +58,20 @@ class Gaze(RNGDataFlow):
   def generate_data(self, args):
     frameFilename, left_eye_x, left_eye_y, right_eye_x, right_eye_y = args
     img = cv2.imread(frameFilename)
+    height, width, channels = img.shape
+
     # Middle of left eye
-    leftEye = img[left_eye_y-(patchYSize-1)/2:left_eye_y+(patchYSize-1)/2, left_eye_x-(patchXSize/2):left_eye_x+(patchXSize/2)-1]
+    l_minY, l_maxY = max(left_eye_y-(patchYSize-1)/2, 0), min(left_eye_y+(patchYSize-1)/2, height)
+    l_minX, l_maxX = max(left_eye_x-(patchXSize/2), 0),   min(left_eye_x+(patchXSize/2)-1, width)
+    leftEye = img[l_minY:l_maxY, l_minX:l_maxX]
 
     # Middle of right eye
-    rightEye = img[right_eye_y-(patchYSize-1)/2:right_eye_y+(patchYSize-1)/2, right_eye_x-(patchXSize/2):right_eye_x+(patchXSize/2)-1]
+    r_minY, r_maxY = max(right_eye_y-(patchYSize-1)/2, 0), min(right_eye_y+(patchYSize-1)/2, height)
+    r_minX, r_maxX = max(right_eye_y-(patchXSize/2), 0),   min(right_eye_y+(patchXSize/2)-1, width)
+    rightEye = img[r_minY:r_maxY, r_minX:r_maxX]
 
     leftEye = cv2.resize(leftEye, (40, 15))
+
     return leftEye
 
 
@@ -74,14 +84,16 @@ class Gaze(RNGDataFlow):
 
 def load_data(directory, dataFile):
   data = Gaze(directory, dataFile)
-  # augmentators = []
-  # data = AugmentImageComponent(data, augmentators)
+  augmentators = [imgaug.MeanVarianceNormalize()]
+  data = AugmentImageComponent(data, augmentators)
   data = BatchData(data, 50)
   return data
 
 def main():
+  os.environ['CUDA_VISIBLE_DEVICES'] = '0'
   dataset_train = load_data(dirToTrain, dataFile)
   dataset_test = load_data(dirToTest, dataFile)
+
   config = TrainConfig(
     model = WebGazerModel(),
     dataflow = dataset_train,
