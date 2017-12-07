@@ -41,11 +41,11 @@ class WebGazerModel(ModelDesc):
     # logits = FullyConnected('fc0', logits, hp.category_num, nl=tf.identity)
     #####################################################################
 
-    logitsX = FullyConnected('fc0_lx', image, 50, nl=tf.nn.relu)
-    logitsX = FullyConnected('fc1_lx', logitsX, 50, nl=tf.identity)
+    logitsX = FullyConnected('fc0_x', image, 50, nl=tf.nn.relu)
+    logitsX = FullyConnected('fc1_x', logitsX, 50, nl=tf.identity)
 
-    logitsY = FullyConnected('fc0_ly', image, 50, nl=tf.nn.relu)
-    logitsY = FullyConnected('fc1_ly', logitsY, 50, nl=tf.identity)
+    logitsY = FullyConnected('fc0_y', image, 50, nl=tf.nn.relu)
+    logitsY = FullyConnected('fc1_y', logitsY, 50, nl=tf.identity)
 
     # Add a loss function based on our network output (logits) and the ground truth labels
     costX = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logitsX, labels=labelX)
