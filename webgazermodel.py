@@ -11,12 +11,13 @@ class WebGazerModel(ModelDesc):
     self.use_bias = True
 
   def _get_inputs(self):
-    return [InputDesc(tf.float32, [None, 15, 40, 3], 'input'),
-      InputDesc(tf.int32, [None], 'label')
+    return [InputDesc(tf.float32, [None, 15, 80, 3], 'input'),
+      InputDesc(tf.int32, [None], 'labelX'),
+      InputDesc(tf.int32, [None], 'labelY')
     ]
 
   def _build_graph(self, inputs):
-    image, label = inputs
+    image, labelX, labelY = inputs
 
     #####################################################################
     # TASK 1: Change architecture (to try to improve performance)
@@ -40,16 +41,23 @@ class WebGazerModel(ModelDesc):
     # logits = FullyConnected('fc0', logits, hp.category_num, nl=tf.identity)
     #####################################################################
 
-    logits = FullyConnected('fc0', image, 50, nl=tf.nn.relu)
-    logits = FullyConnected('fc1', logits, 50, nl=tf.nn.relu)
-    logits = FullyConnected('fc2', logits, 50, nl=tf.identity)
+    logitsX = FullyConnected('fc0_lx', image, 50, nl=tf.nn.relu)
+    logitsX = FullyConnected('fc1_lx', logitsX, 50, nl=tf.identity)
 
+    logitsY = FullyConnected('fc0_ly', image, 50, nl=tf.nn.relu)
+    logitsY = FullyConnected('fc1_ly', logitsY, 50, nl=tf.identity)
 
     # Add a loss function based on our network output (logits) and the ground truth labels
-    cost = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=label)
-    cost = tf.reduce_mean(cost, name='cross_entropy_loss')
+    costX = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logitsX, labels=labelX)
+    costX = tf.reduce_mean(costX, name='cross_entropy_loss')
+    costY = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logitsY, labels=labelY)
+    costY = tf.reduce_mean(costY, name='cross_entropy_loss')
+    cost = tf.reduce_mean([costX, costY])
 
-    wrong = prediction_incorrect(logits, label)
+    #wrong = prediction_incorrect(np.array([logitsX, logitsY]), np.array([labelX, labelY])
+    wrongX = prediction_incorrect(logitsX, labelX)
+    wrongY = prediction_incorrect(logitsY, labelY)
+    wrong = tf.reduce_mean([wrongX, wrongY])
 
     # monitor training error
     add_moving_summary(tf.reduce_mean(wrong, name='train_error'))
