@@ -54,7 +54,7 @@ class WebGazerModel(ModelDesc):
     logitsX = Dropout(logitsX, keep_prob=0.7)
     logitsX = FullyConnected('fc1_x', logitsX, 1000, nl=tf.nn.relu)
     logitsX = Dropout(logitsX, keep_prob=0.7)
-    logitsX = FullyConnected('fc2_x', logitsX, 1, nl=tf.identity)
+    logitsX = FullyConnected('fc2_x', logitsX, 50, nl=tf.identity)
 
     # logitsY = FullyConnected('fc0_y', logits, 9600, nl=tf.nn.relu)
     # # logitsY = Dropout(logitsY, keep_prob=0.5)
@@ -65,22 +65,24 @@ class WebGazerModel(ModelDesc):
     # cost = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logitsX, labels=labelX)
     # cost = tf.reduce_mean(cost, name='cross_entropy_loss')
     # cost = tf.reduce_sum(tf.subtract(labelX, logitsX))
-    logitsX = tf.reshape(logitsX, [-1])
-    logitsX = tf.Print(logitsX, ["PredictedX", logitsX, tf.shape(logitsX)])
-    labelX = tf.Print(labelX, ["LabelsX", labelX, tf.shape(labelX)])
-    cost = tf.reduce_mean(tf.squared_difference(labelX, logitsX))
+    # logitsX = tf.reshape(logitsX, [-1])
+    logitsX = tf.reduce_sum(logitsX, 1)
+    # logitsX = tf.Print(logitsX, ["PredictedX", logitsX, tf.shape(logitsX)])
+    # labelX = tf.Print(labelX, ["LabelsX", labelX, tf.shape(labelX)])
+    cost = tf.sqrt(tf.reduce_mean(tf.squared_difference(labelX, logitsX)))
     # costY = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logitsY, labels=labelY)
     # costY = tf.reduce_mean(costY, name='cross_entropy_loss')
     # cost = tf.reduce_sum([costX, costY])
 
     #wrong = prediction_incorrect(np.array([logitsX, logitsY]), np.array([labelX, labelY])
     # wrong = prediction_incorrect(logitsX, labelX)
-    wrong = tf.squared_difference(labelX, logitsX)
+    # wrong = tf.squared_difference(labelX, logitsX)
+    # wrong = tf.sqrt(wrong)
     # wrongY = prediction_incorrect(logitsY, labelY)
     # wrong = tf.reduce_mean([wrongX, wrongY])
 
     # monitor training error
-    add_moving_summary(tf.reduce_mean(wrong, name='train_error'))
+    add_moving_summary(tf.reduce_mean(cost, name='train_error'))
 
 
     #####################################################################
@@ -99,7 +101,7 @@ class WebGazerModel(ModelDesc):
 
 
   def _get_optimizer(self):
-    lr = get_scalar_var('learning_rate', 1e-2, summary=True)
+    lr = get_scalar_var('learning_rate', 1e-5, summary=True)
 
     # Use gradient descent as our optimizer
     opt = tf.train.GradientDescentOptimizer(lr)

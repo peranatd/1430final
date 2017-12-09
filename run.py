@@ -60,8 +60,8 @@ class Gaze(RNGDataFlow):
 
   def generate_data(self, args):
     frameFilename, left_eye_x, left_eye_y, right_eye_x, right_eye_y = args
-    img = cv2.imread(frameFilename)
-    height, width, channels = img.shape
+    img = cv2.imread(frameFilename, 0)
+    height, width = img.shape
 
     # Middle of left eye
     l_minY, l_maxY = max(left_eye_y-(patchYSize-1)/2, 0), min(left_eye_y+(patchYSize-1)/2, height)
@@ -79,7 +79,14 @@ class Gaze(RNGDataFlow):
     # combined = np.concatenate((leftEye, rightEye), axis=1)
     #combined = cv2.resize(combined, (80, 15))
 
-    return leftEye
+    # normalise
+    leftEye = (leftEye - np.mean(leftEye)) / np.std(leftEye)
+    normed = np.zeros((15, 40, 3), 'float32')
+    normed[..., 0] = leftEye
+    normed[..., 1] = leftEye
+    normed[..., 2] = leftEye
+
+    return normed
 
 
   def get_data(self):
