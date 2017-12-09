@@ -75,10 +75,10 @@ class Gaze(RNGDataFlow):
     leftEye = cv2.resize(leftEye, (40, 15))
     rightEye = cv2.resize(rightEye, (40, 15))
 
-    combined = np.concatenate((leftEye, rightEye), axis=1)
-    #combined = cv2.resize(combined, (80, 15))
+    # combined = np.concatenate((leftEye, rightEye), axis=1)
+    # combined = cv2.resize(combined, (80, 15))
 
-    return combined
+    return leftEye
 
 
   def get_data(self):

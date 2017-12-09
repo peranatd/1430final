@@ -11,7 +11,7 @@ class WebGazerModel(ModelDesc):
     self.use_bias = True
 
   def _get_inputs(self):
-    return [InputDesc(tf.float32, [None, 15, 80, 3], 'input'),
+    return [InputDesc(tf.float32, [None, 15, 40, 3], 'input'),
       InputDesc(tf.int32, [None], 'labelX'),
       InputDesc(tf.int32, [None], 'labelY')
     ]
