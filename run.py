@@ -13,8 +13,8 @@ from tensorpack.utils.gpu import get_nr_gpu
 from tensorpack.dataflow.base import RNGDataFlow
 from webgazermodel import WebGazerModel
 
-dirToTrain = [line.strip()+'/' for line in open('./train_1430_1.txt')]
-dirToTest = [line.strip()+'/' for line in open('./test_1430_1.txt')]
+dirToTrain = [line.strip()+'/' for line in open('./train_test.txt')]
+dirToTest = [line.strip()+'/' for line in open('./test_test.txt')]
 sample_train_directory = "./P_1/1491423217564_2_-study-dot_test_instructions_frames/"
 sample_test_directory = "./P_1/1491423217564_29_-study-where_to_find_morel_mushrooms_writing_frames/"
 dataFile = "gazePredictions.csv"

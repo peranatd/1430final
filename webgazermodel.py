@@ -41,22 +41,24 @@ class WebGazerModel(ModelDesc):
     # logits = FullyConnected('fc0', logits, hp.category_num, nl=tf.identity)
     #####################################################################
 
-    logits = Conv2D('conv1', image, 40, (3,3), nl=tf.nn.relu)
-    #logits = Conv2D('conv2', logits, 30, (3,3), nl=tf.nn.relu)
-    #logits = Conv2D('conv3', logits, 30, (3,3), nl=tf.nn.relu)
-    #logits = MaxPooling('pool1', logits, (2,2), stride=None, padding='valid')
-    logits = Conv2D('conv4', logits, 60, (2,2), nl=tf.nn.relu)
-    logits = MaxPooling('pool2', logits, (2,2), stride=None, padding='valid')
-    logits = Conv2D('conv5', logits, 100, (2,2), nl=tf.nn.relu)
-    logits = Dropout(logits, keep_prob=0.5)
+    logits = Conv2D('conv1', image, 32, (3,3), nl=tf.nn.relu)
+    logits = Conv2D('conv2', logits, 32, (3,3), nl=tf.nn.relu)
+    logits = Conv2D('conv3', logits, 64, (3,3), nl=tf.nn.relu)
+    logits = MaxPooling('pool1', logits, (3,3), stride=(2,2), padding='valid')
+    logits = Conv2D('conv4', logits, 80, (3,3), nl=tf.nn.relu)
+    logits = Conv2D('conv5', logits, 192, (3,3), nl=tf.nn.relu)
+    logits = MaxPooling('pool2', logits, (2,2), stride=(2,2), padding='valid')
+    # logits = Dropout(logits, keep_prob=0.5)
 
-    logitsX = FullyConnected('fc0_x', logits, 1000, nl=tf.nn.relu)
-    logitsX = Dropout(logitsX, keep_prob=0.5)
-    logitsX = FullyConnected('fc1_x', logitsX, 50, nl=tf.identity)
+    logitsX = FullyConnected('fc0_x', logits, 9600, nl=tf.nn.relu)
+    # logitsX = Dropout(logitsX, keep_prob=0.5)
+    logitsX = FullyConnected('fc1_x', logitsX, 1000, nl=tf.nn.relu)
+    logitsX = FullyConnected('fc2_x', logitsX, 50, nl=tf.identity)
 
-    logitsY = FullyConnected('fc0_y', logits, 1000, nl=tf.nn.relu)
-    logitsY = Dropout(logitsY, keep_prob=0.5)
-    logitsY = FullyConnected('fc1_y', logitsY, 50, nl=tf.identity)
+    logitsY = FullyConnected('fc0_y', logits, 9600, nl=tf.nn.relu)
+    # logitsY = Dropout(logitsY, keep_prob=0.5)
+    logitsY = FullyConnected('fc1_y', logitsY, 1000, nl=tf.nn.relu)
+    logitsY = FullyConnected('fc2_y', logitsY, 50, nl=tf.identity)
 
     # Add a loss function based on our network output (logits) and the ground truth labels
     costX = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logitsX, labels=labelX)
