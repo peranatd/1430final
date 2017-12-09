@@ -119,6 +119,6 @@ def main():
     max_epoch = 100
     # nr_tower = max(get_nr_gpu(), 1)
   )
-  SimpleTrainer(config).train()
+  QueueInputTrainer(config).train()
 
 main()

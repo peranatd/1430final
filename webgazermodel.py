@@ -101,7 +101,7 @@ class WebGazerModel(ModelDesc):
 
 
   def _get_optimizer(self):
-    lr = get_scalar_var('learning_rate', 1e-5, summary=True)
+    lr = get_scalar_var('learning_rate', 1e-4, summary=True)
 
     # Use gradient descent as our optimizer
     opt = tf.train.GradientDescentOptimizer(lr)
