@@ -41,10 +41,21 @@ class WebGazerModel(ModelDesc):
     # logits = FullyConnected('fc0', logits, hp.category_num, nl=tf.identity)
     #####################################################################
 
-    logitsX = FullyConnected('fc0_x', image, 50, nl=tf.nn.relu)
+    logits = Conv2D('conv1', image, 40, (3,3), nl=tf.nn.relu)
+    #logits = Conv2D('conv2', logits, 30, (3,3), nl=tf.nn.relu)
+    #logits = Conv2D('conv3', logits, 30, (3,3), nl=tf.nn.relu)
+    #logits = MaxPooling('pool1', logits, (2,2), stride=None, padding='valid')
+    logits = Conv2D('conv4', logits, 60, (2,2), nl=tf.nn.relu)
+    logits = MaxPooling('pool2', logits, (2,2), stride=None, padding='valid')
+    logits = Conv2D('conv5', logits, 100, (2,2), nl=tf.nn.relu)
+    logits = Dropout(logits, keep_prob=0.5)
+
+    logitsX = FullyConnected('fc0_x', logits, 1000, nl=tf.nn.relu)
+    logitsX = Dropout(logitsX, keep_prob=0.5)
     logitsX = FullyConnected('fc1_x', logitsX, 50, nl=tf.identity)
 
-    logitsY = FullyConnected('fc0_y', image, 50, nl=tf.nn.relu)
+    logitsY = FullyConnected('fc0_y', logits, 1000, nl=tf.nn.relu)
+    logitsY = Dropout(logitsY, keep_prob=0.5)
     logitsY = FullyConnected('fc1_y', logitsY, 50, nl=tf.identity)
 
     # Add a loss function based on our network output (logits) and the ground truth labels
@@ -52,7 +63,7 @@ class WebGazerModel(ModelDesc):
     costX = tf.reduce_mean(costX, name='cross_entropy_loss')
     costY = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logitsY, labels=labelY)
     costY = tf.reduce_mean(costY, name='cross_entropy_loss')
-    cost = tf.reduce_mean([costX, costY])
+    cost = tf.reduce_sum([costX, costY])
 
     #wrong = prediction_incorrect(np.array([logitsX, logitsY]), np.array([labelX, labelY])
     wrongX = prediction_incorrect(logitsX, labelX)
@@ -79,7 +90,7 @@ class WebGazerModel(ModelDesc):
 
 
   def _get_optimizer(self):
-    lr = get_scalar_var('learning_rate', 0.01, summary=True)
+    lr = get_scalar_var('learning_rate', 1e-2, summary=True)
 
     # Use gradient descent as our optimizer
     opt = tf.train.GradientDescentOptimizer(lr)
