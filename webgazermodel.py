@@ -64,14 +64,18 @@ class WebGazerModel(ModelDesc):
     # Add a loss function based on our network output (logits) and the ground truth labels
     # cost = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logitsX, labels=labelX)
     # cost = tf.reduce_mean(cost, name='cross_entropy_loss')
-    cost = tf.reduce_sum(tf.subtract(labelX, logitsX))
+    # cost = tf.reduce_sum(tf.subtract(labelX, logitsX))
+    logitsX = tf.reshape(logitsX, [-1])
+    logitsX = tf.Print(logitsX, ["PredictedX", logitsX, tf.shape(logitsX)])
+    labelX = tf.Print(labelX, ["LabelsX", labelX, tf.shape(labelX)])
+    cost = tf.reduce_mean(tf.squared_difference(labelX, logitsX))
     # costY = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logitsY, labels=labelY)
     # costY = tf.reduce_mean(costY, name='cross_entropy_loss')
     # cost = tf.reduce_sum([costX, costY])
 
     #wrong = prediction_incorrect(np.array([logitsX, logitsY]), np.array([labelX, labelY])
     # wrong = prediction_incorrect(logitsX, labelX)
-    wrong = tf.subtract(labelX, logitsX)
+    wrong = tf.squared_difference(labelX, logitsX)
     # wrongY = prediction_incorrect(logitsY, labelY)
     # wrong = tf.reduce_mean([wrongX, wrongY])
 

@@ -54,7 +54,8 @@ class Gaze(RNGDataFlow):
         right_eye_y = clmTrackerInt[65]
         self.imglist.append([frameFilename, left_eye_x, left_eye_y, right_eye_x, right_eye_y])
         #self.labels.append(np.array([tobiiEyeGazeX, tobiiEyeGazeY]))
-        self.labelsX.append(min(49, max(0, np.floor(tobiiLeftEyeGazeX*50))))
+        # self.labelsX.append(min(49, max(0, np.floor(tobiiLeftEyeGazeX*50))))
+        self.labelsX.append(tobiiLeftEyeGazeX)
         self.labelsY.append(min(49, max(0, np.floor(tobiiLeftEyeGazeY*50))))
 
   def generate_data(self, args):
