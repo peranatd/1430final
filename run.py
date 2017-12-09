@@ -76,7 +76,7 @@ class Gaze(RNGDataFlow):
     rightEye = cv2.resize(rightEye, (40, 15))
 
     # combined = np.concatenate((leftEye, rightEye), axis=1)
-    # combined = cv2.resize(combined, (80, 15))
+    #combined = cv2.resize(combined, (80, 15))
 
     return leftEye
 
@@ -105,7 +105,7 @@ def main():
     dataflow = dataset_train,
     callbacks = [
       InferenceRunner(dataset_test,
-        [ScalarStats('cost'), ClassificationError()]
+        [ScalarStats('cost')]
       )
     ],
     max_epoch = 100

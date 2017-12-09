@@ -12,8 +12,8 @@ class WebGazerModel(ModelDesc):
 
   def _get_inputs(self):
     return [InputDesc(tf.float32, [None, 15, 40, 3], 'input'),
-      InputDesc(tf.int32, [None], 'labelX'),
-      InputDesc(tf.int32, [None], 'labelY')
+      InputDesc(tf.float32, [None], 'labelX'),
+      InputDesc(tf.float32, [None], 'labelY')
     ]
 
   def _build_graph(self, inputs):
@@ -41,36 +41,39 @@ class WebGazerModel(ModelDesc):
     # logits = FullyConnected('fc0', logits, hp.category_num, nl=tf.identity)
     #####################################################################
 
-    logits = Conv2D('conv1', image, 32, (3,3), nl=tf.nn.relu)
-    logits = Conv2D('conv2', logits, 32, (3,3), nl=tf.nn.relu)
-    logits = Conv2D('conv3', logits, 64, (3,3), nl=tf.nn.relu)
+    logits = Conv2D('conv1', image, 32, (3,3), nl=BNReLU)
+    logits = Conv2D('conv2', logits, 32, (3,3), nl=BNReLU)
+    logits = Conv2D('conv3', logits, 64, (3,3), nl=BNReLU)
     logits = MaxPooling('pool1', logits, (3,3), stride=(2,2), padding='valid')
-    logits = Conv2D('conv4', logits, 80, (3,3), nl=tf.nn.relu)
-    logits = Conv2D('conv5', logits, 192, (3,3), nl=tf.nn.relu)
+    logits = Conv2D('conv4', logits, 80, (3,3), nl=BNReLU)
+    logits = Conv2D('conv5', logits, 192, (3,3), nl=BNReLU)
     logits = MaxPooling('pool2', logits, (2,2), stride=(2,2), padding='valid')
     # logits = Dropout(logits, keep_prob=0.5)
 
     logitsX = FullyConnected('fc0_x', logits, 9600, nl=tf.nn.relu)
-    # logitsX = Dropout(logitsX, keep_prob=0.5)
+    logitsX = Dropout(logitsX, keep_prob=0.7)
     logitsX = FullyConnected('fc1_x', logitsX, 1000, nl=tf.nn.relu)
-    logitsX = FullyConnected('fc2_x', logitsX, 50, nl=tf.identity)
+    logitsX = Dropout(logitsX, keep_prob=0.7)
+    logitsX = FullyConnected('fc2_x', logitsX, 1, nl=tf.identity)
 
-    logitsY = FullyConnected('fc0_y', logits, 9600, nl=tf.nn.relu)
-    # logitsY = Dropout(logitsY, keep_prob=0.5)
-    logitsY = FullyConnected('fc1_y', logitsY, 1000, nl=tf.nn.relu)
-    logitsY = FullyConnected('fc2_y', logitsY, 50, nl=tf.identity)
+    # logitsY = FullyConnected('fc0_y', logits, 9600, nl=tf.nn.relu)
+    # # logitsY = Dropout(logitsY, keep_prob=0.5)
+    # logitsY = FullyConnected('fc1_y', logitsY, 1000, nl=tf.nn.relu)
+    # logitsY = FullyConnected('fc2_y', logitsY, 50, nl=tf.identity)
 
     # Add a loss function based on our network output (logits) and the ground truth labels
-    costX = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logitsX, labels=labelX)
-    costX = tf.reduce_mean(costX, name='cross_entropy_loss')
-    costY = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logitsY, labels=labelY)
-    costY = tf.reduce_mean(costY, name='cross_entropy_loss')
-    cost = tf.reduce_sum([costX, costY])
+    # cost = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logitsX, labels=labelX)
+    # cost = tf.reduce_mean(cost, name='cross_entropy_loss')
+    cost = tf.reduce_sum(tf.subtract(labelX, logitsX))
+    # costY = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logitsY, labels=labelY)
+    # costY = tf.reduce_mean(costY, name='cross_entropy_loss')
+    # cost = tf.reduce_sum([costX, costY])
 
     #wrong = prediction_incorrect(np.array([logitsX, logitsY]), np.array([labelX, labelY])
-    wrongX = prediction_incorrect(logitsX, labelX)
-    wrongY = prediction_incorrect(logitsY, labelY)
-    wrong = tf.reduce_mean([wrongX, wrongY])
+    # wrong = prediction_incorrect(logitsX, labelX)
+    wrong = tf.subtract(labelX, logitsX)
+    # wrongY = prediction_incorrect(logitsY, labelY)
+    # wrong = tf.reduce_mean([wrongX, wrongY])
 
     # monitor training error
     add_moving_summary(tf.reduce_mean(wrong, name='train_error'))
