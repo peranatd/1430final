@@ -12,9 +12,10 @@ from tensorpack.tfutils.summary import *
 from tensorpack.utils.gpu import get_nr_gpu
 from tensorpack.dataflow.base import RNGDataFlow
 from webgazermodel import WebGazerModel
+from random import shuffle
 
-dirToTrain = [line.strip()+'/' for line in open('./train_test.txt')]
-dirToTest = [line.strip()+'/' for line in open('./test_test.txt')]
+dirToTrain = [line.strip()+'/' for line in open('./train_test2.txt')]
+dirToTest = [line.strip()+'/' for line in open('./test_test2.txt')]
 sample_train_directory = "./P_1/1491423217564_2_-study-dot_test_instructions_frames/"
 sample_test_directory = "./P_1/1491423217564_29_-study-where_to_find_morel_mushrooms_writing_frames/"
 dataFile = "gazePredictions.csv"
@@ -54,15 +55,14 @@ class Gaze(RNGDataFlow):
         right_eye_y = clmTrackerInt[65]
         self.imglist.append([frameFilename, left_eye_x, left_eye_y, right_eye_x, right_eye_y])
         #self.labels.append(np.array([tobiiEyeGazeX, tobiiEyeGazeY]))
-        #self.labelsX.append(min(49, max(0, np.floor(tobiiLeftEyeGazeX*50))))
-        #self.labelsY.append(min(49, max(0, np.floor(tobiiLeftEyeGazeY*50))))
+        # self.labelsX.append(min(49, max(0, np.floor(tobiiLeftEyeGazeX*50))))
         self.labelsX.append(tobiiLeftEyeGazeX)
         self.labelsY.append(tobiiLeftEyeGazeY)
 
   def generate_data(self, args):
     frameFilename, left_eye_x, left_eye_y, right_eye_x, right_eye_y = args
-    img = cv2.imread(frameFilename)
-    height, width, channels = img.shape
+    img = cv2.imread(frameFilename, 0)
+    height, width = img.shape
 
     # Middle of left eye
     l_minY, l_maxY = max(left_eye_y-(patchYSize-1)/2, 0), min(left_eye_y+(patchYSize-1)/2, height)
@@ -75,60 +75,54 @@ class Gaze(RNGDataFlow):
     rightEye = img[r_minY:r_maxY, r_minX:r_maxX]
 
     leftEye = cv2.resize(leftEye, (40, 15))
-    rightEye = cv2.resize(rightEye, (40, 15))
+    if not isEye(leftEye): return None
 
-    # combined = np.concatenate((leftEye, rightEye), axis=1)
+    rightEye = cv2.resize(rightEye, (40, 15))
+    if not isEye(rightEye): return None
+
+    combined = np.concatenate((leftEye, rightEye), axis=1)
     #combined = cv2.resize(combined, (80, 15))
 
-    return [leftEye, rightEye]
+    combined = cv2.equalizeHist(combined)
+
+    # normalise
+    combined = (combined - np.mean(combined)) / np.std(combined)
+    normed = np.zeros((15, 80, 3), 'float32')
+    normed[..., 0] = combined
+    normed[..., 1] = combined
+    normed[..., 2] = combined
+
+    return normed
 
 
   def get_data(self):
-    l_mean, r_mean = np.array([0,0,0]), np.array([0,0,0])
-    l_imglist, r_imglist = [], []
+    shuffle(self.imglist)
     for k in np.arange(len(self.imglist)):
-      leftEye, rightEye = self.generate_data(self.imglist[k])
-      l_imglist.append(leftEye)
-      r_imglist.append(rightEye)
-      l_mean[0] = l_mean[0] + np.sum(leftEye[:,:,0])
-      l_mean[1] = l_mean[1] + np.sum(leftEye[:,:,1])
-      l_mean[2] = l_mean[2] + np.sum(leftEye[:,:,2])
-      #r_mean[0] = r_mean[0] + np.sum(rightEye[:,:,0])
-      #r_mean[1] = r_mean[1] + np.sum(rightEye[:,:,1])
-      #r_mean[2] = r_mean[2] + np.sum(rightEye[:,:,2])
-    l_mean = 1.0 * l_mean / (len(l_imglist) * patchXSize * patchYSize)
-    #r_mean = 1.0 * r_mean / (len(r_imglist) * patchXSize * patchYSize)
-
-    l_sd, r_sd = np.array([0,0,0]), np.array([0,0,0])
-    for k in np.arange(len(l_imglist)):
-      leftEye, rightEye = l_imglist[k], r_imglist[k]
-      l_sd[0] = l_sd[0] + np.sum(np.power(leftEye[:,:,0] - l_mean[0], 2))
-      l_sd[1] = l_sd[1] + np.sum(np.power(leftEye[:,:,1] - l_mean[1], 2))
-      l_sd[2] = l_sd[2] + np.sum(np.power(leftEye[:,:,2] - l_mean[2], 2))
-      #r_sd[0] = r_sd[0] + np.sum(np.power(rightEye[:,:,0] - r_mean[0], 2))
-      #r_sd[1] = r_sd[1] + np.sum(np.power(rightEye[:,:,1] - r_mean[1], 2))
-      #r_sd[2] = r_sd[2] + np.sum(np.power(rightEye[:,:,2] - r_mean[2], 2))
-    l_sd = np.sqrt(1.0 * l_sd / (len(l_imglist) * patchXSize * patchYSize))
-    #r_sd = np.sqrt(1.0 * r_sd / (len(r_imglist) * patchXSize * patchYSize))
-
-    for k in np.arange(len(l_imglist)):
-      leftEye, rightEye = l_imglist[k], r_imglist[k]
-      leftEye[:,:,0] = (leftEye[:,:,0] - l_mean[0])/l_sd[0]
-      leftEye[:,:,1] = (leftEye[:,:,1] - l_mean[1])/l_sd[1]
-      leftEye[:,:,2] = (leftEye[:,:,2] - l_mean[2])/l_sd[2]
-      #rightEye[:,:,0] = (rightEye[:,:,0] - r_mean[0])/r_sd[0]
-      #rightEye[:,:,1] = (rightEye[:,:,1] - r_mean[1])/r_sd[1]
-      #rightEye[:,:,2] = (rightEye[:,:,2] - r_mean[2])/r_sd[2]
-      yield [leftEye, self.labelsX[k], self.labelsY[k]]
+      img = self.generate_data(self.imglist[k]);
+      if img is None: continue
+      yield [img, self.labelsX[k], self.labelsY[k]]
 
   def size(self):
     return len(self.imglist)
 
+def isEye(img):
+  offsetX, offsetY = 8, 2
+  img = cv2.equalizeHist(img)
+  retval, img = cv2.threshold(img, 20, 255, cv2.THRESH_BINARY)
+  circles = cv2.HoughCircles(img[offsetY:patchYSize-offsetY, offsetX:patchXSize-offsetX],cv2.cv.CV_HOUGH_GRADIENT,1,100,param1=5,param2=5,minRadius=4,maxRadius=8)
+  if circles is not None:
+    return True
+  return False
+
 def load_data(directory, dataFile):
   data = Gaze(directory, dataFile)
-  augmentators = [imgaug.MeanVarianceNormalize()]
+  augmentators = [
+    imgaug.MeanVarianceNormalize(),
+    imgaug.GaussianBlur(max_size=2),
+    imgaug.Gamma()
+    ]
   data = AugmentImageComponent(data, augmentators)
-  data = BatchData(data, 50)
+  data = BatchData(data, 20)
   return data
 
 def main():
@@ -147,6 +141,6 @@ def main():
     max_epoch = 100
     # nr_tower = max(get_nr_gpu(), 1)
   )
-  SimpleTrainer(config).train()
+  QueueInputTrainer(config).train()
 
 main()
