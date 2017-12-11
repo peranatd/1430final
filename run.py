@@ -13,8 +13,8 @@ from tensorpack.utils.gpu import get_nr_gpu
 from tensorpack.dataflow.base import RNGDataFlow
 from webgazermodel import WebGazerModel
 
-dirToTrain = [line.strip()+'/' for line in open('./train_1430_1.txt')]
-dirToTest = [line.strip()+'/' for line in open('./test_1430_1.txt')]
+dirToTrain = [line.strip()+'/' for line in open('./train_test.txt')]
+dirToTest = [line.strip()+'/' for line in open('./test_test.txt')]
 sample_train_directory = "./P_1/1491423217564_2_-study-dot_test_instructions_frames/"
 sample_test_directory = "./P_1/1491423217564_29_-study-where_to_find_morel_mushrooms_writing_frames/"
 dataFile = "gazePredictions.csv"
@@ -26,7 +26,8 @@ class Gaze(RNGDataFlow):
   def __init__(self, dirs, dataFile, meta_dir=None, shuffle=None, dir_structure=None):
     self.imglist = []
     self.imgs = []
-    self.labels = []
+    self.labelsX = []
+    self.labelsY = []
     for d in dirs:
       self.generate_labels_and_img_list(d, dataFile)
 
@@ -52,13 +53,15 @@ class Gaze(RNGDataFlow):
         right_eye_x = clmTrackerInt[64]
         right_eye_y = clmTrackerInt[65]
         self.imglist.append([frameFilename, left_eye_x, left_eye_y, right_eye_x, right_eye_y])
-        # self.labels.append(np.array([tobiiEyeGazeX, tobiiEyeGazeY]))
-        self.labels.append(tobiiLeftEyeGazeX)
+        #self.labels.append(np.array([tobiiEyeGazeX, tobiiEyeGazeY]))
+        # self.labelsX.append(min(49, max(0, np.floor(tobiiLeftEyeGazeX*50))))
+        self.labelsX.append(tobiiLeftEyeGazeX)
+        self.labelsY.append(tobiiLeftEyeGazeY)
 
   def generate_data(self, args):
     frameFilename, left_eye_x, left_eye_y, right_eye_x, right_eye_y = args
-    img = cv2.imread(frameFilename)
-    height, width, channels = img.shape
+    img = cv2.imread(frameFilename, 0)
+    height, width = img.shape
 
     # Middle of left eye
     l_minY, l_maxY = max(left_eye_y-(patchYSize-1)/2, 0), min(left_eye_y+(patchYSize-1)/2, height)
@@ -71,13 +74,24 @@ class Gaze(RNGDataFlow):
     rightEye = img[r_minY:r_maxY, r_minX:r_maxX]
 
     leftEye = cv2.resize(leftEye, (40, 15))
+    rightEye = cv2.resize(rightEye, (40, 15))
 
-    return leftEye
+    # combined = np.concatenate((leftEye, rightEye), axis=1)
+    #combined = cv2.resize(combined, (80, 15))
+
+    # normalise
+    leftEye = (leftEye - np.mean(leftEye)) / np.std(leftEye)
+    normed = np.zeros((15, 40, 3), 'float32')
+    normed[..., 0] = leftEye
+    normed[..., 1] = leftEye
+    normed[..., 2] = leftEye
+
+    return normed
 
 
   def get_data(self):
     for k in np.arange(len(self.imglist)):
-      yield [self.generate_data(self.imglist[k]), self.labels[k]]
+      yield [self.generate_data(self.imglist[k]), self.labelsX[k], self.labelsY[k]]
 
   def size(self):
     return len(self.imglist)
@@ -99,12 +113,12 @@ def main():
     dataflow = dataset_train,
     callbacks = [
       InferenceRunner(dataset_test,
-        [ScalarStats('cost'), ClassificationError()]
+        [ScalarStats('error')]
       )
     ],
     max_epoch = 100
     # nr_tower = max(get_nr_gpu(), 1)
   )
-  SimpleTrainer(config).train()
+  QueueInputTrainer(config).train()
 
 main()

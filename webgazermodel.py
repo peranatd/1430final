@@ -12,11 +12,12 @@ class WebGazerModel(ModelDesc):
 
   def _get_inputs(self):
     return [InputDesc(tf.float32, [None, 15, 40, 3], 'input'),
-      InputDesc(tf.int32, [None], 'label')
+      InputDesc(tf.float32, [None], 'labelX'),
+      InputDesc(tf.float32, [None], 'labelY')
     ]
 
   def _build_graph(self, inputs):
-    image, label = inputs
+    image, labelX, labelY = inputs
 
     #####################################################################
     # TASK 1: Change architecture (to try to improve performance)
@@ -40,19 +41,42 @@ class WebGazerModel(ModelDesc):
     # logits = FullyConnected('fc0', logits, hp.category_num, nl=tf.identity)
     #####################################################################
 
-    logits = FullyConnected('fc0', image, 50, nl=tf.nn.relu)
-    logits = FullyConnected('fc1', logits, 50, nl=tf.nn.relu)
-    logits = FullyConnected('fc2', logits, 50, nl=tf.identity)
+    logits = Conv2D('conv1', image, 32, (3,3), nl=tf.nn.relu)
+    logits = Conv2D('conv2', logits, 32, (3,3), nl=tf.nn.relu)
+    logits = Conv2D('conv3', logits, 64, (3,3), nl=tf.nn.relu)
+    logits = MaxPooling('pool1', logits, (3,3), stride=(2,2), padding='valid')
+    logits = Conv2D('conv4', logits, 80, (3,3), nl=tf.nn.relu)
+    logits = Conv2D('conv5', logits, 192, (3,3), nl=tf.nn.relu)
+    logits = MaxPooling('pool2', logits, (2,2), stride=(2,2), padding='valid')
+    # logits = Dropout(logits, keep_prob=0.5)
+
+    logitsX = FullyConnected('fc0_x', logits, 9600, nl=tf.nn.relu)
+    logitsX = Dropout(logitsX, keep_prob=0.7)
+    logitsX = FullyConnected('fc1_x', logitsX, 1000, nl=tf.nn.relu)
+    logitsX = Dropout(logitsX, keep_prob=0.7)
+    logitsX = FullyConnected('fc2_x', logitsX, 50, nl=tf.identity)
+
+    # logitsY = FullyConnected('fc0_y', logits, 9600, nl=tf.nn.relu)
+    # logitsY = Dropout(logitsY, keep_prob=0.7)
+    # logitsY = FullyConnected('fc1_y', logitsY, 1000, nl=tf.nn.relu)
+    # logitsY = Dropout(logitsY, keep_prob=0.7)
+    # logitsY = FullyConnected('fc2_y', logitsY, 50, nl=tf.identity)
+
+    logitsX = tf.reduce_sum(logitsX, 1)
+    # logitsY = tf.reduce_sum(logitsY, 1)
+
+    # logitsX = tf.Print(logitsX, ["PredictedX", logitsX, tf.shape(logitsX)])
+    # labelX = tf.Print(labelX, ["LabelsX", labelX, tf.shape(labelX)])
+    # logitsY = tf.Print(logitsY, ["PredictedY", logitsY, tf.shape(logitsY)])
+    # labelY = tf.Print(labelY, ["LabelsY", labelY, tf.shape(labelY)])
 
 
-    # Add a loss function based on our network output (logits) and the ground truth labels
-    cost = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=label)
-    cost = tf.reduce_mean(cost, name='cross_entropy_loss')
-
-    wrong = prediction_incorrect(logits, label)
+    # cost = tf.sqrt(tf.reduce_mean(tf.add(tf.squared_difference(labelX, logitsX), tf.squared_difference(labelY, logitsY))))
+    cost = tf.sqrt(tf.reduce_mean(tf.squared_difference(labelX, logitsX)))
+    # cost = tf.sqrt(tf.reduce_mean(tf.squared_difference(labelY, logitsY)))
 
     # monitor training error
-    add_moving_summary(tf.reduce_mean(wrong, name='train_error'))
+    add_moving_summary(tf.reduce_mean(cost, name='train_error'))
 
 
     #####################################################################
@@ -65,13 +89,13 @@ class WebGazerModel(ModelDesc):
 
 
     # Set costs and monitor them for TensorBoard
-    add_moving_summary(cost)
+    # add_moving_summary(cost)
     add_param_summary(('.*/kernel', ['histogram']))   # monitor W
-    self.cost = tf.add_n([cost], name='cost')
+    self.cost = tf.add_n([tf.reduce_mean(cost)], name='error')
 
 
   def _get_optimizer(self):
-    lr = get_scalar_var('learning_rate', 0.01, summary=True)
+    lr = get_scalar_var('learning_rate', 1e-4, summary=True)
 
     # Use gradient descent as our optimizer
     opt = tf.train.GradientDescentOptimizer(lr)
