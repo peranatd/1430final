@@ -41,12 +41,12 @@ class WebGazerModel(ModelDesc):
     # logits = FullyConnected('fc0', logits, hp.category_num, nl=tf.identity)
     #####################################################################
 
-    logits = Conv2D('conv1', image, 32, (3,3), nl=BNReLU)
-    logits = Conv2D('conv2', logits, 32, (3,3), nl=BNReLU)
-    logits = Conv2D('conv3', logits, 64, (3,3), nl=BNReLU)
+    logits = Conv2D('conv1', image, 32, (3,3), nl=tf.nn.relu)
+    logits = Conv2D('conv2', logits, 32, (3,3), nl=tf.nn.relu)
+    logits = Conv2D('conv3', logits, 64, (3,3), nl=tf.nn.relu)
     logits = MaxPooling('pool1', logits, (3,3), stride=(2,2), padding='valid')
-    logits = Conv2D('conv4', logits, 80, (3,3), nl=BNReLU)
-    logits = Conv2D('conv5', logits, 192, (3,3), nl=BNReLU)
+    logits = Conv2D('conv4', logits, 80, (3,3), nl=tf.nn.relu)
+    logits = Conv2D('conv5', logits, 192, (3,3), nl=tf.nn.relu)
     logits = MaxPooling('pool2', logits, (2,2), stride=(2,2), padding='valid')
     # logits = Dropout(logits, keep_prob=0.5)
 
@@ -57,29 +57,23 @@ class WebGazerModel(ModelDesc):
     logitsX = FullyConnected('fc2_x', logitsX, 50, nl=tf.identity)
 
     # logitsY = FullyConnected('fc0_y', logits, 9600, nl=tf.nn.relu)
-    # # logitsY = Dropout(logitsY, keep_prob=0.5)
+    # logitsY = Dropout(logitsY, keep_prob=0.7)
     # logitsY = FullyConnected('fc1_y', logitsY, 1000, nl=tf.nn.relu)
+    # logitsY = Dropout(logitsY, keep_prob=0.7)
     # logitsY = FullyConnected('fc2_y', logitsY, 50, nl=tf.identity)
 
-    # Add a loss function based on our network output (logits) and the ground truth labels
-    # cost = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logitsX, labels=labelX)
-    # cost = tf.reduce_mean(cost, name='cross_entropy_loss')
-    # cost = tf.reduce_sum(tf.subtract(labelX, logitsX))
-    # logitsX = tf.reshape(logitsX, [-1])
     logitsX = tf.reduce_sum(logitsX, 1)
+    # logitsY = tf.reduce_sum(logitsY, 1)
+
     # logitsX = tf.Print(logitsX, ["PredictedX", logitsX, tf.shape(logitsX)])
     # labelX = tf.Print(labelX, ["LabelsX", labelX, tf.shape(labelX)])
-    cost = tf.sqrt(tf.reduce_mean(tf.squared_difference(labelX, logitsX)))
-    # costY = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logitsY, labels=labelY)
-    # costY = tf.reduce_mean(costY, name='cross_entropy_loss')
-    # cost = tf.reduce_sum([costX, costY])
+    # logitsY = tf.Print(logitsY, ["PredictedY", logitsY, tf.shape(logitsY)])
+    # labelY = tf.Print(labelY, ["LabelsY", labelY, tf.shape(labelY)])
 
-    #wrong = prediction_incorrect(np.array([logitsX, logitsY]), np.array([labelX, labelY])
-    # wrong = prediction_incorrect(logitsX, labelX)
-    # wrong = tf.squared_difference(labelX, logitsX)
-    # wrong = tf.sqrt(wrong)
-    # wrongY = prediction_incorrect(logitsY, labelY)
-    # wrong = tf.reduce_mean([wrongX, wrongY])
+
+    # cost = tf.sqrt(tf.reduce_mean(tf.add(tf.squared_difference(labelX, logitsX), tf.squared_difference(labelY, logitsY))))
+    cost = tf.sqrt(tf.reduce_mean(tf.squared_difference(labelX, logitsX)))
+    # cost = tf.sqrt(tf.reduce_mean(tf.squared_difference(labelY, logitsY)))
 
     # monitor training error
     add_moving_summary(tf.reduce_mean(cost, name='train_error'))
@@ -95,9 +89,9 @@ class WebGazerModel(ModelDesc):
 
 
     # Set costs and monitor them for TensorBoard
-    add_moving_summary(cost)
+    # add_moving_summary(cost)
     add_param_summary(('.*/kernel', ['histogram']))   # monitor W
-    self.cost = tf.add_n([cost], name='cost')
+    self.cost = tf.add_n([tf.reduce_mean(cost)], name='error')
 
 
   def _get_optimizer(self):
