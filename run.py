@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/usr/local/lib/python2.7/site-packages')
+# sys.path.append('/usr/local/lib/python2.7/site-packages')
 
 import os
 import csv
@@ -123,10 +123,13 @@ def main():
   dataset_train = load_data(dirToTrain, dataFile, "train")
   dataset_test = load_data(dirToTest, dataFile, "test")
 
+  logger.auto_set_dir()
+
   config = TrainConfig(
     model = WebGazerModel(),
     dataflow = dataset_train,
     callbacks = [
+      MinSaver('val-error-top1'),
       InferenceRunner(dataset_test,
         [ScalarStats('error')]
       )
