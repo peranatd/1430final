@@ -56,14 +56,14 @@ class WebGazerModel(ModelDesc):
     logitsX = Dropout(logitsX, keep_prob=0.7)
     logitsX = FullyConnected('fc2_x', logitsX, 50, nl=tf.identity)
 
-    # logitsY = FullyConnected('fc0_y', logits, 9600, nl=tf.nn.relu)
-    # logitsY = Dropout(logitsY, keep_prob=0.7)
-    # logitsY = FullyConnected('fc1_y', logitsY, 1000, nl=tf.nn.relu)
-    # logitsY = Dropout(logitsY, keep_prob=0.7)
-    # logitsY = FullyConnected('fc2_y', logitsY, 50, nl=tf.identity)
+    logitsY = FullyConnected('fc0_y', logits, 9600, nl=tf.nn.relu)
+    logitsY = Dropout(logitsY, keep_prob=0.7)
+    logitsY = FullyConnected('fc1_y', logitsY, 1000, nl=tf.nn.relu)
+    logitsY = Dropout(logitsY, keep_prob=0.7)
+    logitsY = FullyConnected('fc2_y', logitsY, 50, nl=tf.identity)
 
     logitsX = tf.reduce_sum(logitsX, 1)
-    # logitsY = tf.reduce_sum(logitsY, 1)
+    logitsY = tf.reduce_sum(logitsY, 1)
 
     # logitsX = tf.Print(logitsX, ["PredictedX", logitsX, tf.shape(logitsX)])
     # labelX = tf.Print(labelX, ["LabelsX", labelX, tf.shape(labelX)])
@@ -72,8 +72,9 @@ class WebGazerModel(ModelDesc):
 
 
     # cost = tf.sqrt(tf.reduce_mean(tf.add(tf.squared_difference(labelX, logitsX), tf.squared_difference(labelY, logitsY))))
-    cost = tf.sqrt(tf.reduce_mean(tf.squared_difference(labelX, logitsX)))
-    # cost = tf.sqrt(tf.reduce_mean(tf.squared_difference(labelY, logitsY)))
+    costX = tf.reduce_mean(tf.squared_difference(labelX, logitsX))
+    costY = tf.reduce_mean(tf.squared_difference(labelY, logitsY))
+    cost = tf.sqrt(costX + costY)
 
     # monitor training error
     add_moving_summary(tf.reduce_mean(cost, name='train_error'))
