@@ -73,6 +73,7 @@ class Gaze(RNGDataFlow):
     leftEyeDir, rightEyeDir, left_eye_x, left_eye_y, right_eye_x, right_eye_y = args
     leftEye = cv2.imread(leftEyeDir, 0)
     rightEye = cv2.imread(rightEyeDir, 0)
+    leftEye = rightEye
 
     """
     # Middle of left eye
@@ -129,6 +130,7 @@ def main():
     model = WebGazerModel(),
     dataflow = dataset_train,
     callbacks = [
+      ModelSaver(),
       MinSaver('val-error-top1'),
       InferenceRunner(dataset_test,
         [ScalarStats('error')]
