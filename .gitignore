@@ -1,2 +1,11 @@
 P_*
 *.pyc
+writeup/*aux
+writeup/*bbl
+writeup/*blg
+writeup/*brf
+writeup/*fdb_latexmk
+writeup/*fls
+writeup/*log
+writeup/*pdf
+writeup/*synctex.gz
