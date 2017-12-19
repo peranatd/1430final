@@ -65,6 +65,9 @@ class WebGazerModel(ModelDesc):
     logitsX = tf.reduce_sum(logitsX, 1)
     logitsY = tf.reduce_sum(logitsY, 1)
 
+    logitsX = tf.identity(logitsX, name='predictedX')
+    logitsY = tf.identity(logitsY, name='predictedY')
+
     # logitsX = tf.Print(logitsX, ["PredictedX", logitsX, tf.shape(logitsX)])
     # labelX = tf.Print(labelX, ["LabelsX", labelX, tf.shape(labelX)])
     # logitsY = tf.Print(logitsY, ["PredictedY", logitsY, tf.shape(logitsY)])

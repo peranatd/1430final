@@ -136,7 +136,7 @@ def main():
         [ScalarStats('error')]
       )
     ],
-    max_epoch = 100
+    max_epoch = 2
     # nr_tower = max(get_nr_gpu(), 1)
   )
   QueueInputTrainer(config).train()
